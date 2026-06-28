@@ -10,6 +10,9 @@
 <link rel="manifest" href="manifest.json">
 <title>Delícias da Rejane</title>
 <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --rosa:#e8637a;--rosa2:#c94f68;--rosa-light:#f4a7b4;--rosa-pale:#fdeef1;
@@ -450,11 +453,11 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
 
   <div class="sec">💾 Backup</div>
   <div class="bkbox">
-    <p>Exporte os dados para JSON. Guarde no Google Drive ou WhatsApp.</p>
-    <button class="btn bp" onclick="exportarBackup()">⬇️ Exportar Backup</button>
+    <p>Dados salvos na nuvem em tempo real. Exporte uma cópia de segurança local quando quiser.</p>
+    <button class="btn bp" onclick="exportarBackup()">⬇️ Exportar Backup JSON</button>
     <div style="margin-top:10px;text-align:left">
       <label class="fl">Importar Backup</label>
-      <input type="file" id="arq-import" accept=".json" style="width:100%;font-size:13px" onchange="importarBackup(event)">
+      <input type="file" id="arq-import" accept=".json" style="width:100%;font-size:13px" onchange="importarBackupFirebase(event)">
     </div>
   </div>
   <div class="sec">👤 Usuários</div>
@@ -744,27 +747,98 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
 
 <script>
 // ════════════════════════════════════════
-// STORAGE
+// FIREBASE CONFIG
 // ════════════════════════════════════════
-const KEY='delicias_rejane_v3';
-function load(){
+const firebaseConfig = {
+  apiKey: "AIzaSyASnNusivJ70dVpk7ra_qFiOV2_x7ibHgs",
+  authDomain: "delicias-rejane.firebaseapp.com",
+  projectId: "delicias-rejane",
+  storageBucket: "delicias-rejane.firebasestorage.app",
+  messagingSenderId: "812542028724",
+  appId: "1:812542028724:web:30299a14ed7f6c9d1e20e1"
+};
+
+// Inicializa Firebase via CDN (carregado no <head>)
+firebase.initializeApp(firebaseConfig);
+const fsdb = firebase.firestore();
+
+// ════════════════════════════════════════
+// DB LOCAL (cache em memória)
+// ════════════════════════════════════════
+let db = {
+  pedidos:[],clientes:[],movs:[],estoque:[],
+  compras:[],cfg:{fiadoPct:25},
+  usuarios:[{id:'admin',nome:'admin',display:'Administrador',senha:btoa('admin')}]
+};
+let _listeners = []; // unsubscribe functions
+
+// ── SALVAR no Firestore ──
+async function save(d){
   try{
-    const r=localStorage.getItem(KEY);
-    const d=r?JSON.parse(r):{};
-    // usuários padrão se não existir
-    let usuarios=d.usuarios||[];
-    if(!usuarios.length) usuarios=[{id:'admin',nome:'admin',display:'Administrador',senha:btoa('admin')}];
-    return{
-      pedidos:d.pedidos||[],clientes:d.clientes||[],
-      movs:d.movs||[],estoque:d.estoque||[],
-      compras:d.compras||[],cfg:d.cfg||{fiadoPct:25},
-      usuarios
-    };
-  }catch{return{pedidos:[],clientes:[],movs:[],estoque:[],compras:[],cfg:{fiadoPct:25},
-    usuarios:[{id:'admin',nome:'admin',display:'Administrador',senha:btoa('admin')}]}}
+    // salva cada coleção como documento único (simples para volume pequeno)
+    await fsdb.collection('dados').doc('principal').set({
+      pedidos: d.pedidos||[],
+      clientes: d.clientes||[],
+      movs: d.movs||[],
+      estoque: d.estoque||[],
+      compras: d.compras||[],
+      cfg: d.cfg||{fiadoPct:25},
+      usuarios: d.usuarios||[]
+    });
+  }catch(e){
+    console.error('Erro ao salvar:',e);
+    toast('⚠️ Erro ao salvar dados!');
+  }
 }
-function save(d){try{localStorage.setItem(KEY,JSON.stringify(d))}catch{toast('⚠️ Erro ao salvar!')}}
-let db=load();
+
+// ── CARREGAR do Firestore ──
+async function loadFirebase(){
+  try{
+    const doc = await fsdb.collection('dados').doc('principal').get();
+    if(doc.exists){
+      const d = doc.data();
+      db.pedidos  = d.pedidos  || [];
+      db.clientes = d.clientes || [];
+      db.movs     = d.movs     || [];
+      db.estoque  = d.estoque  || [];
+      db.compras  = d.compras  || [];
+      db.cfg      = d.cfg      || {fiadoPct:25};
+      db.usuarios = d.usuarios && d.usuarios.length ? d.usuarios
+        : [{id:'admin',nome:'admin',display:'Administrador',senha:btoa('admin')}];
+    } else {
+      // primeira vez — cria documento com defaults
+      db.usuarios = [{id:'admin',nome:'admin',display:'Administrador',senha:btoa('admin')}];
+      await save(db);
+    }
+  }catch(e){
+    console.error('Erro ao carregar:',e);
+    toast('⚠️ Sem conexão — dados podem estar desatualizados');
+  }
+}
+
+// ── LISTENER TEMPO REAL ──
+function iniciarListener(){
+  const unsub = fsdb.collection('dados').doc('principal')
+    .onSnapshot(doc=>{
+      if(!doc.exists) return;
+      const d = doc.data();
+      // atualiza db local preservando usuário logado
+      const usrLogado = usuarioLogado;
+      db.pedidos  = d.pedidos  || [];
+      db.clientes = d.clientes || [];
+      db.movs     = d.movs     || [];
+      db.estoque  = d.estoque  || [];
+      db.compras  = d.compras  || [];
+      db.cfg      = d.cfg      || {fiadoPct:25};
+      db.usuarios = d.usuarios && d.usuarios.length ? d.usuarios : db.usuarios;
+      usuarioLogado = usrLogado;
+      // re-renderiza a página ativa
+      const ativo = document.querySelector('.nb.active');
+      if(ativo) renderPage(ativo.id.replace('nav-',''));
+      renderInicio();
+    }, err=>console.error('Listener erro:',err));
+  _listeners.push(unsub);
+}
 
 // ════════════════════════════════════════
 // UTILS
@@ -1531,23 +1605,24 @@ function exportarBackup(){
   a.href=url;a.download=`backup_rejane_${hoje()}.json`;a.click();URL.revokeObjectURL(url);
   toast('✅ Backup exportado!');
 }
-function importarBackup(e){
+async function importarBackupFirebase(e){
   const file=e.target.files[0];if(!file)return;
   const r=new FileReader();
-  r.onload=ev=>{
+  r.onload=async ev=>{
     try{
       const d=JSON.parse(ev.target.result);
       if(!d.pedidos||!d.clientes){toast('⚠️ Arquivo inválido');return}
       if(!d.compras)d.compras=[];if(!d.cfg)d.cfg={fiadoPct:25};
-      if(!d.usuarios||!d.usuarios.length)d.usuarios=db.usuarios; // preserva usuários
-      db=d;save(db);renderConfig();toast('✅ Backup importado!');
+      if(!d.usuarios||!d.usuarios.length)d.usuarios=db.usuarios;
+      db=d;await save(db);renderConfig();toast('✅ Backup importado!');
     }catch{toast('⚠️ Erro ao ler arquivo')}
   };
   r.readAsText(file);e.target.value='';
 }
-function limparTudo(){
-  db={pedidos:[],clientes:[],movs:[],estoque:[],compras:[],cfg:{fiadoPct:25}};
-  save(db);renderConfig();toast('🗑️ Dados apagados');
+
+async function limparTudo(){
+  db={pedidos:[],clientes:[],movs:[],estoque:[],compras:[],cfg:{fiadoPct:25},usuarios:db.usuarios};
+  await save(db);renderConfig();toast('🗑️ Dados apagados');
 }
 
 // ════════════════════════════════════════
@@ -1567,8 +1642,8 @@ function fazerLogin(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('lg-pass').value='';
   err.textContent='';
-  // mostra nome no header
   document.querySelector('.hdr-logo span').textContent='Olá, '+(usr.display||usr.nome)+' 👋';
+  iniciarListener();
   renderInicio();
   renderConfig();
 }
@@ -1647,18 +1722,52 @@ function excluirUsuario(){
 
 // INIT
 document.getElementById('fab-btn').style.display='none';
-// Não renderiza nada — espera o login
-// Verifica se já há sessão ativa (sessionStorage)
-const _sess=sessionStorage.getItem('dr_sess');
-if(_sess){
-  const _u=db.usuarios.find(u=>u.id===_sess);
-  if(_u){
-    usuarioLogado=_u;
-    document.getElementById('login-screen').style.display='none';
-    document.querySelector('.hdr-logo span').textContent='Olá, '+(_u.display||_u.nome)+' 👋';
-    renderInicio();
+
+// Mostra loading enquanto carrega Firebase
+document.getElementById('login-screen').innerHTML = `
+  <div style="text-align:center;color:#fff">
+    <div style="font-family:'Pacifico',cursive;font-size:28px;margin-bottom:12px">🍰 Delícias da Rejane</div>
+    <div style="font-size:14px;opacity:.85">Carregando...</div>
+    <div style="margin-top:20px;width:40px;height:40px;border:4px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:20px auto"></div>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+`;
+
+(async () => {
+  await loadFirebase();
+
+  // Restaura tela de login original
+  document.getElementById('login-screen').innerHTML = `
+    <div class="login-box">
+      <div class="lg-logo">🍰 Delícias</div>
+      <div class="lg-sub">da Rejane — Gestão do Negócio</div>
+      <div class="fg">
+        <label class="fl" style="text-align:left">Usuário</label>
+        <input class="fi" type="text" id="lg-user" placeholder="admin" autocomplete="username">
+      </div>
+      <div class="fg">
+        <label class="fl" style="text-align:left">Senha</label>
+        <input class="fi" type="password" id="lg-pass" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()">
+      </div>
+      <button class="btn bp" style="margin-top:4px" onclick="fazerLogin()">Entrar</button>
+      <div class="lg-err" id="lg-err"></div>
+      <div class="lg-user" id="lg-user-info"></div>
+    </div>
+  `;
+
+  // Verifica sessão ativa
+  const _sess = sessionStorage.getItem('dr_sess');
+  if(_sess){
+    const _u = db.usuarios.find(u=>u.id===_sess);
+    if(_u){
+      usuarioLogado = _u;
+      document.getElementById('login-screen').style.display='none';
+      document.querySelector('.hdr-logo span').textContent='Olá, '+(_u.display||_u.nome)+' 👋';
+      iniciarListener();
+      renderInicio();
+    }
   }
-}
+})();
 </script>
 </body>
 </html>
