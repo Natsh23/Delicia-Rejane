@@ -885,12 +885,13 @@ function renderInicio(){
   const comprasMes=db.compras.filter(c=>c.data&&c.data.startsWith(mesInicio)).reduce((s,c)=>s+c.valor,0);
   const lucro=receita-despesas;
 
-  // fiado em aberto (geral, não do mês)
-  const fiado=db.pedidos.filter(p=>p.pagamento==='fiado'&&p.status!=='cancelado'&&p.status!=='entregue').reduce((s,p)=>s+(p.valorFinal||p.valor||0),0);
-  // previsto = pedidos com data entrega futura
+  // tudo filtrado pelo mês selecionado
+  const pedMes=db.pedidos.filter(p=>p.criado&&p.criado.startsWith(mesInicio));
+  const fiado=pedMes.filter(p=>p.pagamento==='fiado'&&p.status!=='cancelado'&&p.status!=='entregue').reduce((s,p)=>s+(p.valorFinal||p.valor||0),0);
+  // previsto = pedidos do mês com data de entrega futura ainda não entregues
   const fut=hoje();
-  const previsto=db.pedidos.filter(p=>p.dataEntrega&&p.dataEntrega>fut&&p.status!=='cancelado'&&p.status!=='entregue').reduce((s,p)=>s+(p.valorFinal||p.valor||0),0);
-  const abertos=db.pedidos.filter(p=>p.status==='aberto'||p.status==='pronto').length;
+  const previsto=pedMes.filter(p=>p.dataEntrega&&p.dataEntrega>fut&&p.status!=='cancelado'&&p.status!=='entregue').reduce((s,p)=>s+(p.valorFinal||p.valor||0),0);
+  const abertos=pedMes.filter(p=>p.status==='aberto'||p.status==='pronto').length;
 
   document.getElementById('rs-receita').textContent=fmtR(receita);
   document.getElementById('rs-compras').textContent=fmtR(comprasMes);
@@ -908,9 +909,9 @@ function renderInicio(){
   }
   setBar('receita',receita);setBar('compras',comprasMes);setBar('fiado',fiado);setBar('previsto',previsto);
 
-  // pedidos recentes
+  // pedidos recentes do mês selecionado
   const cp=document.getElementById('inicio-pedidos');
-  const rec=db.pedidos.slice(0,5);
+  const rec=pedMes.slice(0,5);
   cp.innerHTML=rec.length?rec.map(p=>`
     <div class="card" onclick="abrirAcoes('${p.id}')">
       <div class="cl">
@@ -921,7 +922,7 @@ function renderInicio(){
         <span class="cv">${fmtR(p.valorFinal||p.valor)}</span>
         ${badge(p.status)}
       </div>
-    </div>`).join(''):'<div class="empty" style="padding:16px"><div class="ei">📋</div><p>Sem pedidos ainda</p></div>';
+    </div>`).join(''):'<div class="empty" style="padding:16px"><div class="ei">📋</div><p>Sem pedidos neste mês</p></div>';
 
   // estoque baixo
   const baixo=db.estoque.filter(e=>e.min>0&&e.qty<=e.min);
