@@ -198,6 +198,14 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
 .bkbox{background:var(--branco);border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin-bottom:12px}
 .bkbox p{font-size:12px;color:var(--cinza);margin-bottom:10px}
 
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:linear-gradient(145deg,var(--rosa2),#a33050);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{background:var(--branco);border-radius:24px;padding:32px 24px;width:100%;max-width:360px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.25)}
+.login-box .lg-logo{font-family:'Pacifico',cursive;font-size:26px;color:var(--rosa);margin-bottom:4px}
+.login-box .lg-sub{font-size:12px;color:var(--cinza);margin-bottom:24px;font-weight:600}
+.login-box .lg-err{color:var(--rosa);font-size:12px;font-weight:700;margin-top:8px;min-height:18px}
+.login-box .lg-user{font-size:13px;color:var(--cinza);margin-top:16px;font-weight:600}
+
 /* CONF MODAL */
 .conf-mo{display:none;position:fixed;inset:0;background:rgba(92,45,30,0.6);z-index:500;align-items:center;justify-content:center;padding:22px}
 .conf-mo.open{display:flex}
@@ -216,9 +224,29 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
 <body>
 
 <!-- HEADER -->
+<!-- ══ TELA DE LOGIN ══ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="lg-logo">🍰 Delícias</div>
+    <div class="lg-sub">da Rejane — Gestão do Negócio</div>
+    <div class="fg">
+      <label class="fl" style="text-align:left">Usuário</label>
+      <input class="fi" type="text" id="lg-user" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="fg">
+      <label class="fl" style="text-align:left">Senha</label>
+      <input class="fi" type="password" id="lg-pass" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()">
+    </div>
+    <button class="btn bp" style="margin-top:4px" onclick="fazerLogin()">Entrar</button>
+    <div class="lg-err" id="lg-err"></div>
+    <div class="lg-user" id="lg-user-info"></div>
+  </div>
+</div>
+
 <div class="hdr">
   <div style="font-size:24px">🍰</div>
   <div class="hdr-logo">Delícias da Rejane<span>Gestão do Negócio</span></div>
+  <button onclick="fazerLogout()" style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;color:#fff;font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap">Sair</button>
 </div>
 
 <!-- NAV -->
@@ -288,6 +316,11 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
 
 <!-- ══ PEDIDOS ══ -->
 <div class="page" id="page-pedidos">
+  <div class="mes-nav" style="margin-bottom:10px">
+    <button class="mes-btn" onclick="mudarMesInicio(-1);renderPedidos()">&#8249;</button>
+    <div class="mes-label" id="pedidos-mes-label">—</div>
+    <button class="mes-btn" onclick="mudarMesInicio(1);renderPedidos()">&#8250;</button>
+  </div>
   <div class="filtros">
     <button class="fb active" onclick="filtrarPed('todos',this)">Todos</button>
     <button class="fb" onclick="filtrarPed('aberto',this)">Abertos</button>
@@ -420,6 +453,13 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
       <input type="file" id="arq-import" accept=".json" style="width:100%;font-size:13px" onchange="importarBackup(event)">
     </div>
   </div>
+  <div class="sec">👤 Usuários</div>
+  <div class="bkbox" style="text-align:left">
+    <p style="margin-bottom:10px">Gerencie os usuários com acesso ao app.</p>
+    <div id="lista-usuarios-cfg"></div>
+    <button class="btn bp" style="margin-top:10px" onclick="abrirModalUsuario()">+ Novo Usuário</button>
+  </div>
+
   <div class="sec">⚠️ Zona de Perigo</div>
   <div class="bkbox">
     <p>Apaga todos os dados permanentemente.</p>
@@ -682,6 +722,22 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
   </div>
 </div>
 
+<!-- ══ MODAL USUÁRIO ══ -->
+<div class="mo" id="modal-usuario">
+  <div class="modal">
+    <div class="mh"></div>
+    <div class="mt" id="musr-title">Novo Usuário 👤</div>
+    <input type="hidden" id="usr-id">
+    <div class="fg"><label class="fl">Usuário *</label><input class="fi" type="text" id="usr-nome" placeholder="Ex: rejane" autocomplete="off"></div>
+    <div class="fg"><label class="fl">Nome de exibição</label><input class="fi" type="text" id="usr-display" placeholder="Ex: Rejane"></div>
+    <div class="fg"><label class="fl">Senha *</label><input class="fi" type="password" id="usr-senha" placeholder="Mínimo 4 caracteres" autocomplete="new-password"></div>
+    <div class="fg"><label class="fl">Confirmar Senha *</label><input class="fi" type="password" id="usr-senha2" placeholder="Repita a senha" autocomplete="new-password"></div>
+    <button class="btn bp" onclick="salvarUsuario()">💾 Salvar Usuário</button>
+    <button class="btn bd" id="btn-del-usr" style="display:none" onclick="pedirConf('Excluir usuário?','O usuário será removido.','excluirUsuario')">🗑️ Excluir</button>
+    <button class="btn bg" onclick="fecharModal('modal-usuario')">Cancelar</button>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════
 // STORAGE
@@ -691,12 +747,17 @@ function load(){
   try{
     const r=localStorage.getItem(KEY);
     const d=r?JSON.parse(r):{};
+    // usuários padrão se não existir
+    let usuarios=d.usuarios||[];
+    if(!usuarios.length) usuarios=[{id:'admin',nome:'admin',display:'Administrador',senha:btoa('admin')}];
     return{
       pedidos:d.pedidos||[],clientes:d.clientes||[],
       movs:d.movs||[],estoque:d.estoque||[],
-      compras:d.compras||[],cfg:d.cfg||{fiadoPct:25}
+      compras:d.compras||[],cfg:d.cfg||{fiadoPct:25},
+      usuarios
     };
-  }catch{return{pedidos:[],clientes:[],movs:[],estoque:[],compras:[],cfg:{fiadoPct:25}}}
+  }catch{return{pedidos:[],clientes:[],movs:[],estoque:[],compras:[],cfg:{fiadoPct:25},
+    usuarios:[{id:'admin',nome:'admin',display:'Administrador',senha:btoa('admin')}]}}
 }
 function save(d){try{localStorage.setItem(KEY,JSON.stringify(d))}catch{toast('⚠️ Erro ao salvar!')}}
 let db=load();
@@ -786,6 +847,7 @@ function renderConfig(){
   const rec=movMes.filter(m=>m.tipo==='entrada').reduce((s,m)=>s+m.valor,0);
   const desp=movMes.filter(m=>m.tipo==='saida').reduce((s,m)=>s+m.valor,0);
   const comp=db.compras.filter(c=>c.data&&c.data.startsWith(mes)).reduce((s,c)=>s+c.valor,0);
+  renderListaUsuarios();
   document.getElementById('rel-rec').textContent=fmtR(rec);
   document.getElementById('rel-desp').textContent=fmtR(desp);
   document.getElementById('rel-comp').textContent=fmtR(comp);
@@ -1052,10 +1114,15 @@ function filtrarPed(f,btn){
 }
 
 function renderPedidos(){
-  const lista=filtroPed==='todos'?db.pedidos:db.pedidos.filter(p=>p.status===filtroPed);
+  // filtra pelo mês do início (mesInicio) além do status
+  const pedMes=db.pedidos.filter(p=>p.criado&&p.criado.startsWith(mesInicio));
+  const lista=filtroPed==='todos'?pedMes:pedMes.filter(p=>p.status===filtroPed);
   const c=document.getElementById('lista-pedidos');
   const e=document.getElementById('empty-pedidos');
   if(!lista.length){c.innerHTML='';e.style.display='block';return}
+  // atualiza label do mês na aba pedidos
+  const plbl=document.getElementById('pedidos-mes-label');
+  if(plbl) plbl.textContent=nomeMes(mesInicio);
   e.style.display='none';
   c.innerHTML=lista.map(p=>`
     <div class="card" onclick="abrirAcoes('${p.id}')">
@@ -1467,6 +1534,7 @@ function importarBackup(e){
       const d=JSON.parse(ev.target.result);
       if(!d.pedidos||!d.clientes){toast('⚠️ Arquivo inválido');return}
       if(!d.compras)d.compras=[];if(!d.cfg)d.cfg={fiadoPct:25};
+      if(!d.usuarios||!d.usuarios.length)d.usuarios=db.usuarios; // preserva usuários
       db=d;save(db);renderConfig();toast('✅ Backup importado!');
     }catch{toast('⚠️ Erro ao ler arquivo')}
   };
@@ -1477,9 +1545,115 @@ function limparTudo(){
   save(db);renderConfig();toast('🗑️ Dados apagados');
 }
 
+// ════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════
+let usuarioLogado=null;
+
+function fazerLogin(){
+  const nome=document.getElementById('lg-user').value.trim().toLowerCase();
+  const senha=document.getElementById('lg-pass').value;
+  const err=document.getElementById('lg-err');
+  if(!nome||!senha){err.textContent='Preencha usuário e senha.';return}
+  const usr=db.usuarios.find(u=>u.nome.toLowerCase()===nome&&u.senha===btoa(senha));
+  if(!usr){err.textContent='Usuário ou senha incorretos.';return}
+  usuarioLogado=usr;
+  sessionStorage.setItem('dr_sess',usr.id);
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('lg-pass').value='';
+  err.textContent='';
+  // mostra nome no header
+  document.querySelector('.hdr-logo span').textContent='Olá, '+(usr.display||usr.nome)+' 👋';
+  renderInicio();
+  renderConfig();
+}
+
+function fazerLogout(){
+  usuarioLogado=null;
+  sessionStorage.removeItem('dr_sess');
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('lg-user').value='';
+  document.getElementById('lg-pass').value='';
+  document.getElementById('lg-err').textContent='';
+}
+
+// ════════════════════════════════════════
+// GESTÃO DE USUÁRIOS
+// ════════════════════════════════════════
+function renderListaUsuarios(){
+  const cont=document.getElementById('lista-usuarios-cfg');
+  if(!cont)return;
+  cont.innerHTML=db.usuarios.map(u=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rosa-pale)">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--marrom)">${u.display||u.nome}</div>
+        <div style="font-size:11px;color:var(--cinza)">@${u.nome}</div>
+      </div>
+      <button onclick="abrirModalUsuario('${u.id}')" style="background:var(--rosa-pale);color:var(--rosa);border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif">✏️ Editar</button>
+    </div>`).join('');
+}
+
+function abrirModalUsuario(id=null){
+  const f=x=>document.getElementById(x);
+  f('usr-id').value=id||'';
+  f('btn-del-usr').style.display=id&&db.usuarios.length>1?'block':'none';
+  f('musr-title').textContent=id?'Editar Usuário ✏️':'Novo Usuário 👤';
+  if(id){
+    const u=db.usuarios.find(x=>x.id===id)||{};
+    f('usr-nome').value=u.nome||'';
+    f('usr-display').value=u.display||'';
+    f('usr-senha').value='';f('usr-senha2').value='';
+  } else {
+    f('usr-nome').value=f('usr-display').value=f('usr-senha').value=f('usr-senha2').value='';
+  }
+  document.getElementById('modal-usuario').classList.add('open');
+}
+
+function salvarUsuario(){
+  const nome=document.getElementById('usr-nome').value.trim().toLowerCase();
+  const display=document.getElementById('usr-display').value.trim();
+  const senha=document.getElementById('usr-senha').value;
+  const senha2=document.getElementById('usr-senha2').value;
+  const id=document.getElementById('usr-id').value;
+  if(!nome){toast('⚠️ Informe o usuário');return}
+  if(!id&&!senha){toast('⚠️ Informe a senha');return}
+  if(senha&&senha.length<4){toast('⚠️ Senha mínima: 4 caracteres');return}
+  if(senha&&senha!==senha2){toast('⚠️ Senhas não conferem');return}
+  // checar duplicata de nome
+  const dup=db.usuarios.find(u=>u.nome.toLowerCase()===nome&&u.id!==id);
+  if(dup){toast('⚠️ Este usuário já existe');return}
+  if(id){
+    const idx=db.usuarios.findIndex(u=>u.id===id);
+    db.usuarios[idx].nome=nome;
+    db.usuarios[idx].display=display;
+    if(senha) db.usuarios[idx].senha=btoa(senha);
+  } else {
+    db.usuarios.push({id:uid(),nome,display,senha:btoa(senha)});
+  }
+  save(db);fecharModal('modal-usuario');renderListaUsuarios();toast('✅ Usuário salvo!');
+}
+
+function excluirUsuario(){
+  const id=document.getElementById('usr-id').value;
+  if(db.usuarios.length<=1){toast('⚠️ Deve existir ao menos um usuário');return}
+  db.usuarios=db.usuarios.filter(u=>u.id!==id);
+  save(db);fecharModal('modal-usuario');renderListaUsuarios();toast('🗑️ Usuário removido');
+}
+
 // INIT
 document.getElementById('fab-btn').style.display='none';
-renderInicio();
+// Não renderiza nada — espera o login
+// Verifica se já há sessão ativa (sessionStorage)
+const _sess=sessionStorage.getItem('dr_sess');
+if(_sess){
+  const _u=db.usuarios.find(u=>u.id===_sess);
+  if(_u){
+    usuarioLogado=_u;
+    document.getElementById('login-screen').style.display='none';
+    document.querySelector('.hdr-logo span').textContent='Olá, '+(_u.display||_u.nome)+' 👋';
+    renderInicio();
+  }
+}
 </script>
 </body>
 </html>
