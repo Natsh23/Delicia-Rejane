@@ -213,6 +213,23 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
 .login-box .lg-err{color:var(--rosa);font-size:12px;font-weight:700;margin-top:8px;min-height:18px}
 .login-box .lg-user{font-size:13px;color:var(--cinza);margin-top:16px;font-weight:600}
 
+/* ITENS PEDIDO */
+.itens-lista{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.item-row{background:var(--rosa-pale);border-radius:var(--rs);padding:10px 12px;position:relative}
+.item-row .rm-btn{position:absolute;top:8px;right:8px;background:var(--rosa);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.item-row-grid{display:grid;grid-template-columns:1fr 80px 90px;gap:6px;align-items:end}
+.item-row-grid .fg{margin-bottom:0}
+.add-item-btns{display:flex;gap:8px;margin-bottom:12px}
+.add-item-btn{flex:1;padding:9px 6px;border:2px dashed var(--rosa-light);background:transparent;border-radius:var(--rs);font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--rosa);cursor:pointer;text-align:center}
+.add-item-btn:active{background:var(--rosa-pale)}
+.pagto-parcial{background:var(--amarelo-pale);border-radius:var(--rs);padding:12px;margin-bottom:10px}
+.pagto-parcial h4{font-size:12px;font-weight:800;color:var(--amarelo);margin-bottom:8px}
+.parcela-row{background:var(--branco);border-radius:8px;padding:9px 10px;margin-bottom:6px;position:relative}
+.parcela-row .rm-btn{position:absolute;top:7px;right:8px;background:var(--rosa);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.resumo-pedido{background:var(--rosa-pale);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;font-size:12px;font-weight:700;color:var(--marrom)}
+.resumo-pedido .rp-row{display:flex;justify-content:space-between;margin-bottom:3px}
+.resumo-pedido .rp-total{font-size:15px;color:var(--rosa);border-top:1px solid var(--rosa-light);padding-top:5px;margin-top:5px}
+
 /* CONF MODAL */
 .conf-mo{display:none;position:fixed;inset:0;background:rgba(92,45,30,0.6);z-index:500;align-items:center;justify-content:center;padding:22px}
 .conf-mo.open{display:flex}
@@ -500,46 +517,71 @@ input[type=range]{width:100%;accent-color:var(--rosa);height:5px;border-radius:3
     <input type="hidden" id="ped-id">
 
     <div class="fg">
-      <label class="fl">Produto do Estoque</label>
-      <select class="fs" id="ped-item" onchange="preencherItemPedido()">
-        <option value="">Selecionar produto do estoque...</option>
-      </select>
-    </div>
-    <div id="ped-preco-info" style="display:none" class="info-box">
-      À vista: <span id="ped-preco-avista" style="color:var(--verde);font-weight:800">—</span>
-      &nbsp;|&nbsp; Fiado: <span id="ped-preco-fiado" style="color:var(--rosa);font-weight:800">—</span>
-    </div>
-
-    <div class="fg" style="margin-top:8px">
       <label class="fl">Cliente</label>
       <select class="fs" id="ped-cliente"><option value="">Selecione...</option></select>
     </div>
     <div class="fg">
-      <label class="fl">Descrição do Pedido *</label>
-      <textarea class="fta" id="ped-desc" placeholder="Ex: 1 torta de frango, 30 brigadeiros..."></textarea>
+      <label class="fl">Data de Entrega</label>
+      <input class="fi" type="date" id="ped-data">
     </div>
-    <div class="fr">
-      <div class="fg">
-        <label class="fl">Valor à Vista (R$)</label>
-        <input class="fi" type="number" id="ped-valor" placeholder="0,00" step="0.01" min="0" oninput="recalcFiado()">
-      </div>
-      <div class="fg">
-        <label class="fl">Data de Entrega</label>
-        <input class="fi" type="date" id="ped-data">
+
+    <!-- ITENS DO PEDIDO -->
+    <div style="margin-bottom:6px">
+      <label class="fl">Itens do Pedido *</label>
+      <div class="itens-lista" id="ped-itens-lista"></div>
+      <div class="add-item-btns">
+        <button class="add-item-btn" onclick="addItemEstoque()">📦 + Do Estoque</button>
+        <button class="add-item-btn" onclick="addItemLivre()">✏️ + Item Livre</button>
       </div>
     </div>
+
+    <!-- RESUMO VALORES -->
+    <div class="resumo-pedido" id="ped-resumo" style="display:none">
+      <div class="rp-row"><span>Subtotal:</span><span id="rp-subtotal">R$ 0,00</span></div>
+      <div class="rp-row rp-total"><span>Total do Pedido:</span><span id="rp-total">R$ 0,00</span></div>
+    </div>
+
+    <!-- PAGAMENTO -->
     <div class="fg">
-      <label class="fl">Pagamento</label>
+      <label class="fl">Forma de Pagamento</label>
       <div class="catbar">
         <button class="cbs active" id="ppag-pix" onclick="setPagamento('pix')">💠 Pix</button>
         <button class="cbs" id="ppag-dinheiro" onclick="setPagamento('dinheiro')">💵 Dinheiro</button>
         <button class="cbs" id="ppag-fiado" onclick="setPagamento('fiado')">⏳ Fiado</button>
+        <button class="cbs" id="ppag-parcial" onclick="setPagamento('parcial')">✂️ Parcial</button>
       </div>
       <input type="hidden" id="ped-pag" value="pix">
     </div>
+
+    <!-- AVISO FIADO -->
     <div id="ped-fiado-aviso" style="display:none" class="info-box">
-      ⏳ Fiado = <span id="ped-fiado-val" style="color:var(--rosa)">—</span> (+<span id="ped-fiado-pct">25</span>%)
+      ⏳ Total com juros fiado: <span id="ped-fiado-val" style="color:var(--rosa);font-weight:800">—</span> (+<span id="ped-fiado-pct">25</span>%)
     </div>
+
+    <!-- PAGAMENTO PARCIAL -->
+    <div class="pagto-parcial" id="ped-parcial-box" style="display:none">
+      <h4>✂️ Pagamento Parcial</h4>
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Entrada (R$)</label>
+          <input class="fi" type="number" id="ped-entrada" placeholder="0,00" step="0.01" min="0" oninput="recalcParcial()">
+        </div>
+        <div class="fg">
+          <label class="fl">Data do Saldo</label>
+          <input class="fi" type="date" id="ped-parcela-data">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Cobrar juros no saldo restante?</label>
+        <div class="catbar">
+          <button class="cbs" id="jur-nao" onclick="setJurosParcial(false)">Não — sem juros</button>
+          <button class="cbs active" id="jur-sim" onclick="setJurosParcial(true)">Sim — +<span id="jur-pct-lbl">25</span>%</button>
+        </div>
+        <input type="hidden" id="ped-juros-parcial" value="true">
+      </div>
+      <div id="ped-parcial-resumo" style="font-size:12px;font-weight:700;color:var(--marrom);margin-top:4px"></div>
+    </div>
+
     <div class="fg">
       <label class="fl">Status</label>
       <select class="fs" id="ped-status">
@@ -1017,104 +1059,241 @@ function renderInicio(){
 // ════════════════════════════════════════
 let filtroPed='todos';
 
-function abrirPedido(id=null){
-  const f=x=>document.getElementById(x);
-  f('ped-id').value=id||'';
-  f('mped-title').textContent=id?'Editar Pedido ✏️':'Novo Pedido 🎂';
-  f('btn-del-ped').style.display=id?'block':'none';
-  f('ped-preco-info').style.display='none';
-  f('ped-fiado-aviso').style.display='none';
-  f('ped-fiado-pct').textContent=fiadoPct();
+// ── ITENS DO PEDIDO (estado temporário) ──
+let _pedItens = []; // [{tipo:'estoque'|'livre', itemId, nome, qty, preco, subtotal}]
 
-  // preenche select de clientes
-  const selCli=f('ped-cliente');
-  selCli.innerHTML='<option value="">Selecione...</option>';
-  db.clientes.forEach(c=>selCli.innerHTML+=`<option value="${c.id}">${c.nome}</option>`);
-
-  // preenche select de itens do estoque
-  const selItem=f('ped-item');
-  selItem.innerHTML='<option value="">Selecionar produto do estoque...</option>';
-  db.estoque.forEach(e=>selItem.innerHTML+=`<option value="${e.id}" data-preco="${e.preco||0}">${e.nome}${e.preco?(' — '+fmtR(e.preco)):''}</option>`);
-
-  if(id){
-    const p=db.pedidos.find(x=>x.id===id)||{};
-    selCli.value=p.clienteId||'';
-    f('ped-item').value=p.itemId||'';
-    f('ped-desc').value=p.descricao||'';
-    f('ped-valor').value=p.valor||'';
-    f('ped-data').value=p.dataEntrega||'';
-    f('ped-status').value=p.status||'aberto';
-    f('ped-obs').value=p.obs||'';
-    setPagamento(p.pagamento||'pix');
-    if(p.itemId)preencherItemPedido();
-    recalcFiado();
-  } else {
-    f('ped-desc').value=f('ped-obs').value='';
-    f('ped-valor').value='';f('ped-data').value='';
-    f('ped-status').value='aberto';selCli.value='';selItem.value='';
-    setPagamento('pix');
-  }
-  fecharModal('modal-acoes');
-  f('modal-pedido').classList.add('open');
+function addItemEstoque(){
+  if(!db.estoque.length){toast('⚠️ Nenhum produto no estoque');return}
+  const id='item_'+uid();
+  _pedItens.push({id,tipo:'estoque',itemId:'',nome:'',qty:1,preco:0,subtotal:0});
+  renderItensPedido();
+}
+function addItemLivre(){
+  const id='item_'+uid();
+  _pedItens.push({id,tipo:'livre',itemId:'',nome:'',qty:1,preco:0,subtotal:0});
+  renderItensPedido();
+}
+function removerItem(id){
+  _pedItens=_pedItens.filter(x=>x.id!==id);
+  renderItensPedido();
 }
 
-function preencherItemPedido(){
-  const sel=document.getElementById('ped-item');
-  const opt=sel.options[sel.selectedIndex];
-  if(!opt||!opt.value)return;
-  const preco=parseFloat(opt.getAttribute('data-preco'))||0;
-  const item=db.estoque.find(e=>e.id===opt.value);
-  if(item&&item.preco){
-    document.getElementById('ped-valor').value=item.preco.toFixed(2);
-    document.getElementById('ped-preco-avista').textContent=fmtR(item.preco);
-    document.getElementById('ped-preco-fiado').textContent=fmtR(precoFiado(item.preco));
-    document.getElementById('ped-preco-info').style.display='block';
-    if(!document.getElementById('ped-desc').value)
-      document.getElementById('ped-desc').value=item.nome;
-    recalcFiado();
+function renderItensPedido(){
+  const lista=document.getElementById('ped-itens-lista');
+  if(!_pedItens.length){
+    lista.innerHTML='<div style="font-size:12px;color:var(--cinza);padding:6px 0">Nenhum item adicionado ainda.</div>';
+    document.getElementById('ped-resumo').style.display='none';
+    return;
   }
+  lista.innerHTML=_pedItens.map((it,idx)=>{
+    if(it.tipo==='estoque'){
+      const opts=db.estoque.map(e=>`<option value="${e.id}" data-preco="${e.preco||0}" ${it.itemId===e.id?'selected':''}>${e.nome}${e.preco?' — '+fmtR(e.preco):''}</option>`).join('');
+      return`<div class="item-row">
+        <button class="rm-btn" onclick="removerItem('${it.id}')">×</button>
+        <div class="item-row-grid">
+          <div class="fg"><label class="fl">Produto</label>
+            <select class="fs" onchange="onItemEstoqueChange('${it.id}',this)">
+              <option value="">Selecione...</option>${opts}
+            </select>
+          </div>
+          <div class="fg"><label class="fl">Qtd</label>
+            <input class="fi" type="number" value="${it.qty}" min="1" step="1" style="text-align:center" onchange="onItemQtyChange('${it.id}',this.value)">
+          </div>
+          <div class="fg"><label class="fl">Subtotal</label>
+            <input class="fi" type="text" value="${fmtR(it.subtotal)}" readonly style="background:var(--cinza-light);font-weight:800">
+          </div>
+        </div>
+      </div>`;
+    } else {
+      return`<div class="item-row">
+        <button class="rm-btn" onclick="removerItem('${it.id}')">×</button>
+        <div class="item-row-grid">
+          <div class="fg"><label class="fl">Descrição</label>
+            <input class="fi" type="text" placeholder="Ex: Bolo personalizado" value="${it.nome}" onchange="onItemNomeChange('${it.id}',this.value)">
+          </div>
+          <div class="fg"><label class="fl">Qtd</label>
+            <input class="fi" type="number" value="${it.qty}" min="1" step="1" style="text-align:center" onchange="onItemQtyChange('${it.id}',this.value)">
+          </div>
+          <div class="fg"><label class="fl">Preço Unit.</label>
+            <input class="fi" type="number" placeholder="0,00" value="${it.preco||''}" step="0.01" min="0" onchange="onItemPrecoChange('${it.id}',this.value)">
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--rosa);margin-top:4px;text-align:right">Subtotal: ${fmtR(it.subtotal)}</div>
+      </div>`;
+    }
+  }).join('');
+  atualizarResumo();
+}
+
+function onItemEstoqueChange(id,sel){
+  const it=_pedItens.find(x=>x.id===id);if(!it)return;
+  const opt=sel.options[sel.selectedIndex];
+  it.itemId=opt.value;
+  it.nome=opt.value?db.estoque.find(e=>e.id===opt.value)?.nome||'':'';
+  it.preco=parseFloat(opt.getAttribute('data-preco'))||0;
+  it.subtotal=it.preco*it.qty;
+  renderItensPedido();
+}
+function onItemQtyChange(id,val){
+  const it=_pedItens.find(x=>x.id===id);if(!it)return;
+  it.qty=parseInt(val)||1;it.subtotal=it.preco*it.qty;
+  atualizarResumo();
+}
+function onItemNomeChange(id,val){
+  const it=_pedItens.find(x=>x.id===id);if(!it)return;
+  it.nome=val;
+}
+function onItemPrecoChange(id,val){
+  const it=_pedItens.find(x=>x.id===id);if(!it)return;
+  it.preco=parseFloat(val)||0;it.subtotal=it.preco*it.qty;
+  atualizarResumo();
+}
+
+function calcTotalItens(){
+  return _pedItens.reduce((s,it)=>s+it.subtotal,0);
+}
+
+function atualizarResumo(){
+  const total=calcTotalItens();
+  const pag=document.getElementById('ped-pag').value;
+  const resumo=document.getElementById('ped-resumo');
+  if(!_pedItens.length){resumo.style.display='none';return}
+  resumo.style.display='block';
+  document.getElementById('rp-subtotal').textContent=fmtR(total);
+  let totalFinal=total;
+  if(pag==='fiado') totalFinal=precoFiado(total);
+  document.getElementById('rp-total').textContent=fmtR(totalFinal);
+  // atualiza fiado aviso
+  if(pag==='fiado'&&total>0){
+    document.getElementById('ped-fiado-val').textContent=fmtR(totalFinal);
+    document.getElementById('ped-fiado-pct').textContent=fiadoPct();
+    document.getElementById('ped-fiado-aviso').style.display='block';
+  } else {
+    document.getElementById('ped-fiado-aviso').style.display='none';
+  }
+  // recalc parcial
+  if(pag==='parcial') recalcParcial();
 }
 
 function setPagamento(pag){
-  ['pix','dinheiro','fiado'].forEach(x=>document.getElementById('ppag-'+x).classList.toggle('active',x===pag));
+  ['pix','dinheiro','fiado','parcial'].forEach(x=>{
+    const el=document.getElementById('ppag-'+x);
+    if(el) el.classList.toggle('active',x===pag);
+  });
   document.getElementById('ped-pag').value=pag;
-  recalcFiado();
+  document.getElementById('ped-fiado-aviso').style.display='none';
+  document.getElementById('ped-parcial-box').style.display=pag==='parcial'?'block':'none';
+  document.getElementById('jur-pct-lbl').textContent=fiadoPct();
+  atualizarResumo();
 }
+
+function setJurosParcial(sim){
+  document.getElementById('jur-sim').classList.toggle('active',sim);
+  document.getElementById('jur-nao').classList.toggle('active',!sim);
+  document.getElementById('ped-juros-parcial').value=sim?'true':'false';
+  recalcParcial();
+}
+
+function recalcParcial(){
+  const total=calcTotalItens();
+  const entrada=parseFloat(document.getElementById('ped-entrada').value)||0;
+  const comJuros=document.getElementById('ped-juros-parcial').value==='true';
+  const saldo=total-entrada;
+  const saldoFinal=saldo>0?(comJuros?precoFiado(saldo):saldo):0;
+  const div=document.getElementById('ped-parcial-resumo');
+  if(total>0){
+    div.innerHTML=`
+      <div style="display:flex;justify-content:space-between"><span>Total do pedido:</span><span>${fmtR(total)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Entrada:</span><span style="color:var(--verde)">${fmtR(entrada)}</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Saldo restante${comJuros?' (+'+fiadoPct()+'%)':''}:</span><span style="color:var(--rosa);font-weight:800">${fmtR(saldoFinal)}</span></div>
+    `;
+  }
+}
+
+function recalcFiado(){atualizarResumo();}
 
 function setMovTipo(t){
   ['entrada','saida'].forEach(x=>document.getElementById('mtip-'+x.slice(0,3)).classList.toggle('active',x===t));
   document.getElementById('mov-tipo').value=t;
 }
 
-function recalcFiado(){
-  const pag=document.getElementById('ped-pag').value;
-  const val=parseFloat(document.getElementById('ped-valor').value)||0;
-  const aviso=document.getElementById('ped-fiado-aviso');
-  if(pag==='fiado'&&val>0){
-    const total=precoFiado(val);
-    document.getElementById('ped-fiado-val').textContent=fmtR(total);
-    document.getElementById('ped-fiado-pct').textContent=fiadoPct();
-    aviso.style.display='block';
+function abrirPedido(id=null){
+  const f=x=>document.getElementById(x);
+  f('ped-id').value=id||'';
+  f('mped-title').textContent=id?'Editar Pedido ✏️':'Novo Pedido 🎂';
+  f('btn-del-ped').style.display=id?'block':'none';
+  f('ped-fiado-aviso').style.display='none';
+  f('ped-parcial-box').style.display='none';
+  f('ped-resumo').style.display='none';
+  f('jur-pct-lbl').textContent=fiadoPct();
+
+  const selCli=f('ped-cliente');
+  selCli.innerHTML='<option value="">Selecione...</option>';
+  db.clientes.forEach(c=>selCli.innerHTML+=`<option value="${c.id}">${c.nome}</option>`);
+
+  if(id){
+    const p=db.pedidos.find(x=>x.id===id)||{};
+    selCli.value=p.clienteId||'';
+    f('ped-data').value=p.dataEntrega||'';
+    f('ped-status').value=p.status||'aberto';
+    f('ped-obs').value=p.obs||'';
+    _pedItens=p.itens?JSON.parse(JSON.stringify(p.itens)):[];
+    setPagamento(p.pagamento||'pix');
+    if(p.pagamento==='parcial'){
+      f('ped-entrada').value=p.entrada||'';
+      f('ped-parcela-data').value=p.parcelaData||'';
+      setJurosParcial(p.jurosParcel!==false);
+    }
   } else {
-    aviso.style.display='none';
+    f('ped-data').value='';
+    f('ped-status').value='aberto';
+    f('ped-obs').value='';
+    selCli.value='';
+    _pedItens=[];
+    setPagamento('pix');
   }
+  renderItensPedido();
+  fecharModal('modal-acoes');
+  f('modal-pedido').classList.add('open');
 }
 
 function salvarPedido(){
-  const desc=document.getElementById('ped-desc').value.trim();
-  if(!desc){toast('⚠️ Informe a descrição');return}
-  const valorBase=parseFloat(document.getElementById('ped-valor').value)||0;
+  if(!_pedItens.length){toast('⚠️ Adicione pelo menos um item');return}
+  const itensInvalidos=_pedItens.filter(it=>!it.nome||it.preco<=0);
+  if(itensInvalidos.length){toast('⚠️ Preencha todos os itens com nome e preço');return}
+
+  const total=calcTotalItens();
   const pag=document.getElementById('ped-pag').value;
-  const valorFinal=pag==='fiado'?precoFiado(valorBase):valorBase;
-  const itemId=document.getElementById('ped-item').value;
-  const itemNome=itemId?nomeItem(itemId):'';
   const id=document.getElementById('ped-id').value;
+  const desc=_pedItens.map(it=>`${it.qty}x ${it.nome}`).join(', ');
+  const itemNome=_pedItens.length===1?_pedItens[0].nome:_pedItens.length+' itens';
+
+  let valorFinal=total;
+  let entrada=0;
+  let saldoRestante=0;
+  let parcelaData='';
+  let jurosParcel=false;
+
+  if(pag==='fiado'){
+    valorFinal=precoFiado(total);
+  } else if(pag==='parcial'){
+    entrada=parseFloat(document.getElementById('ped-entrada').value)||0;
+    parcelaData=document.getElementById('ped-parcela-data').value;
+    jurosParcel=document.getElementById('ped-juros-parcial').value==='true';
+    const saldo=total-entrada;
+    saldoRestante=saldo>0?(jurosParcel?precoFiado(saldo):saldo):0;
+    valorFinal=entrada+saldoRestante;
+  }
 
   const ped={
     id:id||uid(),
     clienteId:document.getElementById('ped-cliente').value,
-    itemId,itemNome,descricao:desc,
-    valor:valorBase,valorFinal,
+    itens:_pedItens,
+    descricao:desc,
+    itemNome,
+    valor:total,
+    valorFinal,
+    entrada,saldoRestante,parcelaData,jurosParcel,
     dataEntrega:document.getElementById('ped-data').value,
     pagamento:pag,
     status:document.getElementById('ped-status').value,
@@ -1125,8 +1304,10 @@ function salvarPedido(){
   if(id){db.pedidos[db.pedidos.findIndex(p=>p.id===id)]=ped}
   else{
     db.pedidos.unshift(ped);
-    if(pag!=='fiado'&&valorFinal>0){
-      db.movs.unshift({id:uid(),tipo:'entrada',descricao:'Pedido: '+desc.slice(0,40),valor:valorFinal,data:hoje(),cat:'venda'});
+    // lança no caixa apenas a entrada imediata
+    const valCaixa=pag==='parcial'?entrada:(pag!=='fiado'?valorFinal:0);
+    if(valCaixa>0){
+      db.movs.unshift({id:uid(),tipo:'entrada',descricao:'Pedido: '+desc.slice(0,40),valor:valCaixa,data:hoje(),cat:'venda'});
     }
   }
   save(db);fecharModal('modal-pedido');renderPedidos();toast('✅ Pedido salvo!');
@@ -1143,11 +1324,14 @@ function abrirAcoes(id){
   const p=db.pedidos.find(x=>x.id===id);if(!p)return;
   document.getElementById('acoes-ped-id').value=id;
   document.getElementById('acoes-titulo').textContent=nomeCli(p.clienteId)||'Pedido';
+  const itensStr=p.itens&&p.itens.length?p.itens.map(it=>`${it.qty}x ${it.nome}`).join('<br>'):(p.descricao||'—');
+  let pagStr='💠 Pix / Dinheiro';
+  if(p.pagamento==='fiado') pagStr='⏳ Fiado';
+  if(p.pagamento==='parcial') pagStr=`✂️ Parcial — Entrada: ${fmtR(p.entrada)} | Saldo: ${fmtR(p.saldoRestante)}${p.parcelaData?' em '+fmtD(p.parcelaData):''}`;
   document.getElementById('acoes-info').innerHTML=`
-    <div><strong>${p.itemNome||p.descricao||'—'}</strong></div>
-    <div style="margin-top:4px;color:var(--cinza)">
-      ${p.dataEntrega?'📅 Entrega: '+fmtD(p.dataEntrega)+' &nbsp;':''}
-      ${p.pagamento==='fiado'?'⏳ Fiado':'💠 Pix / Dinheiro'}
+    <div style="font-size:12px;color:var(--cinza);margin-bottom:4px">${itensStr}</div>
+    <div style="color:var(--cinza);font-size:11px">
+      ${p.dataEntrega?'📅 Entrega: '+fmtD(p.dataEntrega)+' &nbsp;':''}${pagStr}
     </div>
     <div style="margin-top:6px;font-size:15px;font-weight:800;color:var(--marrom)">${fmtR(p.valorFinal||p.valor)} ${badge(p.status)}</div>
   `;
@@ -1168,11 +1352,19 @@ function acaoPedido(novoStatus){
 function acoesReceberFiado(){
   const id=document.getElementById('acoes-ped-id').value;
   const p=db.pedidos.find(x=>x.id===id);if(!p)return;
-  if(p.pagamento!=='fiado'){toast('Este pedido não é fiado');return}
-  db.movs.unshift({id:uid(),tipo:'entrada',descricao:'Fiado recebido: '+(p.itemNome||p.descricao||'').slice(0,35),valor:p.valorFinal||p.valor,data:hoje(),cat:'fiado'});
-  p.status='entregue';
-  save(db);fecharModal('modal-acoes');renderPedidos();renderCaixa();
-  toast('✅ Fiado recebido e lançado no caixa!');
+  if(p.pagamento==='fiado'){
+    db.movs.unshift({id:uid(),tipo:'entrada',descricao:'Fiado recebido: '+(p.itemNome||p.descricao||'').slice(0,35),valor:p.valorFinal||p.valor,data:hoje(),cat:'fiado'});
+    p.status='entregue';
+    save(db);fecharModal('modal-acoes');renderPedidos();renderCaixa();
+    toast('✅ Fiado recebido e lançado no caixa!');
+  } else if(p.pagamento==='parcial'&&p.saldoRestante>0){
+    db.movs.unshift({id:uid(),tipo:'entrada',descricao:'Saldo recebido: '+(p.itemNome||p.descricao||'').slice(0,35),valor:p.saldoRestante,data:hoje(),cat:'fiado'});
+    p.saldoRestante=0;p.status='entregue';
+    save(db);fecharModal('modal-acoes');renderPedidos();renderCaixa();
+    toast('✅ Saldo recebido e lançado no caixa!');
+  } else {
+    toast('⚠️ Este pedido não tem saldo pendente');
+  }
 }
 
 function abrirPedidoEdicao(){
@@ -1203,18 +1395,24 @@ function renderPedidos(){
   const plbl=document.getElementById('pedidos-mes-label');
   if(plbl) plbl.textContent=nomeMes(mesInicio);
   e.style.display='none';
-  c.innerHTML=lista.map(p=>`
-    <div class="card" onclick="abrirAcoes('${p.id}')">
+  c.innerHTML=lista.map(p=>{
+    const itensStr=p.itens&&p.itens.length?p.itens.map(it=>`${it.qty}x ${it.nome}`).join(', '):(p.descricao||'');
+    let pagBadge='💠 Pix';
+    if(p.pagamento==='dinheiro') pagBadge='💵 Dinheiro';
+    if(p.pagamento==='fiado') pagBadge='⏳ Fiado';
+    if(p.pagamento==='parcial') pagBadge=`✂️ Saldo: ${fmtR(p.saldoRestante)}`;
+    return`<div class="card" onclick="abrirAcoes('${p.id}')">
       <div class="cl">
         <div class="cn">${nomeCli(p.clienteId)}</div>
-        <div class="cs">${(p.itemNome||p.descricao||'').slice(0,52)}</div>
-        <div class="cs">${p.dataEntrega?'📅 '+fmtD(p.dataEntrega)+' · ':''} ${p.pagamento==='fiado'?'⏳ Fiado':p.pagamento==='pix'?'💠 Pix':'💵 Dinheiro'}</div>
+        <div class="cs">${itensStr.slice(0,52)}</div>
+        <div class="cs">${p.dataEntrega?'📅 '+fmtD(p.dataEntrega)+' · ':''} ${pagBadge}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <span class="cv">${fmtR(p.valorFinal||p.valor)}</span>
         ${badge(p.status)}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ════════════════════════════════════════
